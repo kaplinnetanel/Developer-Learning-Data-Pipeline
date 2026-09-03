@@ -1,0 +1,12 @@
+﻿{
+  "Kafka": {
+    "BootstrapServers": "localhost:9092",
+    "GroupId": "consumer-group",
+    "Topics": {
+      "Raw": "raw-survey-topic"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=3306;Database=Db;User=root;Password=root;"
+  }
+}
