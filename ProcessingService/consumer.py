@@ -1,11 +1,19 @@
 from confluent_kafka import Consumer
 from process_record import process_record
-from producer import send_processed , flush
+from producer import send_processed, flush
 import json
+import os
+
 def consumer():
-    conf = {"bootstrap.servers": "localhost:9092",
-            "group.id": "foo",
-            "auto.offset.reset": "smallest"}
+    conf = {
+        "bootstrap.servers": os.getenv(
+            "KAFKA_BOOTSTRAP_SERVERS",
+            "localhost:9092"
+        ),
+        "group.id": "foo",
+        "auto.offset.reset": "smallest"
+    }
+
     c = Consumer(conf)
 
     try:

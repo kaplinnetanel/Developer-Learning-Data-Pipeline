@@ -1,6 +1,12 @@
 from confluent_kafka import Producer
 import json
-producer = Producer({"bootstrap.servers":"localhost:9092"})
+import os
+producer = Producer({
+    "bootstrap.servers": os.getenv(
+        "KAFKA_BOOTSTRAP_SERVERS",
+        "localhost:9092"
+    )
+})
 TopiC = "processed-survey-topic"
 
 def  send_processed(record):

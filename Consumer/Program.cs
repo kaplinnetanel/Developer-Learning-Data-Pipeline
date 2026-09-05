@@ -1,44 +1,47 @@
-﻿using Confluent.Kafka;
+﻿using System.Text.Json;
+using Confluent.Kafka;
 using Consumer.Models;
-using MongoDB.Driver;
-using System.Text.Json;
+using Consumer.Services;
 
-var config = new ConsumerConfig
+var bootstrapServers =
+    Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS")
+    ?? "localhost:9092";
+
+var topic =
+    Environment.GetEnvironmentVariable("KAFKA_TOPIC")
+    ?? "processed-survey-topic";
+
+var groupId =
+    Environment.GetEnvironmentVariable("KAFKA_GROUP_ID")
+    ?? "csharp-consumer";
+
+var consumerConfig = new ConsumerConfig
 {
-    BootstrapServers = "localhost:9092",
-    GroupId = "csharp-consumer",
+    BootstrapServers = bootstrapServers,
+    GroupId = groupId,
     AutoOffsetReset = AutoOffsetReset.Earliest
 };
 
-var mongoClient = new MongoClient("mongodb://localhost:27017");
-var database = mongoClient.GetDatabase("DeveloperLearningDb");
-var collection = database.GetCollection<DeveloperLearning>("Developers");
+using var consumer =
+    new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
 
-using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
+consumer.Subscribe(topic);
 
-consumer.Subscribe("processed-survey-topic");
+var dataService = new DataService();
 
-try
+while (true)
 {
-    while (true)
+    var result = consumer.Consume();
+
+    var developer =
+        JsonSerializer.Deserialize<DeveloperLearning>(
+            result.Message.Value);
+
+    if (developer != null)
     {
-        var result = consumer.Consume();
+        await dataService.CreateAsync(developer);
 
-        var developer = JsonSerializer.Deserialize<DeveloperLearning>(
-            result.Message.Value
-        );
-
-        if (developer != null)
-        {
-            await collection.InsertOneAsync(developer);
-
-            Console.WriteLine(
-                $"Saved ResponseId: {developer.ResponseId}"
-            );
-        }
+        Console.WriteLine(
+            $"Saved ResponseId: {developer.ResponseId}");
     }
-}
-catch (OperationCanceledException)
-{
-    consumer.Close();
 }
